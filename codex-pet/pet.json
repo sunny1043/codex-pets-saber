@@ -1,0 +1,7 @@
+{
+  "id": "saber",
+  "displayName": "Saber",
+  "description": "A chibi Saber-inspired Codex pet built from the existing transparent action artwork.",
+  "spriteVersionNumber": 2,
+  "spritesheetPath": "spritesheet.png"
+}

@@ -1,0 +1,2414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Pixel-Mapper / 万能图像到像素映射器</title>
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS Variables defining our Cosmic Dark premium palette */
+        :root {
+            --bg-color: #0b0d19;
+            --bg-glass: rgba(15, 17, 30, 0.75);
+            --card-bg: rgba(20, 24, 46, 0.6);
+            --card-border: rgba(255, 255, 255, 0.06);
+            --text-primary: #f8f9fa;
+            --text-secondary: #a6accd;
+            --text-dark: #626880;
+            
+            /* Neon Glowing Accent Tones */
+            --accent-blue: #82aaff;
+            --accent-blue-glow: rgba(130, 170, 255, 0.4);
+            --accent-green: #c3e88d;
+            --accent-green-glow: rgba(195, 232, 141, 0.4);
+            --accent-purple: #c792ea;
+            --accent-purple-glow: rgba(199, 146, 234, 0.4);
+            --accent-orange: #f78c6c;
+            --accent-orange-glow: rgba(247, 140, 108, 0.4);
+            --accent-red: #ff5370;
+            
+            --border-radius: 12px;
+            --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-glow: 0 0 15px var(--accent-blue-glow);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Base styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(130, 170, 255, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(199, 146, 234, 0.05) 0px, transparent 50%);
+            color: var(--text-secondary);
+            font-family: 'Outfit', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #05060b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1a1e36;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-blue);
+        }
+
+        /* Glassmorphic Header */
+        header {
+            height: 64px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border-b: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 12px rgba(130, 170, 255, 0.3);
+            color: #0b0d19;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .header-titles h1 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.5px;
+        }
+
+        .header-titles p {
+            font-size: 11px;
+            color: var(--accent-blue);
+            font-weight: 500;
+        }
+
+        /* Layout Container */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Collapsible Glass Panels */
+        aside {
+            width: 320px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding: 20px;
+            gap: 24px;
+            z-index: 10;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+            transition: var(--transition-smooth);
+            max-height: 100%;
+            min-height: 0;
+        }
+
+        aside.right-panel {
+            border-right: none;
+            border-left: 1px solid var(--card-border);
+            box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+        }
+
+        /* Card panels */
+        .card {
+            background: rgba(13, 17, 33, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: var(--transition-smooth);
+        }
+
+        .card:hover {
+            border-color: rgba(130, 170, 255, 0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .card-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 8px;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed rgba(130, 170, 255, 0.3);
+            border-radius: var(--border-radius);
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            background: rgba(130, 170, 255, 0.02);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-blue);
+            background: rgba(130, 170, 255, 0.05);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .upload-icon {
+            font-size: 32px;
+            margin-bottom: 4px;
+            filter: drop-shadow(0 2px 8px var(--accent-blue-glow));
+        }
+
+        .upload-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .upload-subtext {
+            font-size: 10px;
+            color: var(--text-dark);
+        }
+
+        /* Control Input Elements */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-val {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-blue);
+            font-size: 11px;
+        }
+
+        /* Customized Sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #1a1e36;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent-blue-glow);
+            transition: var(--transition-smooth);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: var(--text-primary);
+        }
+
+        /* Checkbox & Dropdown Controls */
+        select {
+            width: 100%;
+            background: #0f1224;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 12px;
+            outline: none;
+            font-family: inherit;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        select:focus {
+            border-color: var(--accent-blue);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-primary);
+            user-select: none;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            accent-color: var(--accent-blue);
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        /* Neon Action Button */
+        .btn-neon {
+            width: 100%;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .btn-blue {
+            background: var(--accent-blue);
+            color: #0b0d19;
+            box-shadow: 0 4px 15px rgba(130, 170, 255, 0.3);
+        }
+
+        .btn-blue:hover:not(:disabled) {
+            background: var(--text-primary);
+            box-shadow: 0 0 20px rgba(130, 170, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-blue:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-blue:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Center Canvas & Editing Viewport */
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            gap: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Split-screen Mode Layout */
+        .workspace-split {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 20px;
+            min-height: 0;
+            transition: var(--transition-smooth);
+        }
+
+        .workspace-split.focus-mode {
+            grid-template-columns: 0fr 1fr;
+        }
+
+        .workspace-split.focus-mode .ref-card {
+            opacity: 0;
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
+        }
+
+        /* Viewer Cards */
+        .view-card {
+            background: #0f1224;
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .view-header {
+            height: 44px;
+            background: rgba(26, 30, 54, 0.5);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+
+        .view-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .view-meta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--accent-green);
+            background: rgba(195, 232, 141, 0.08);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(195, 232, 141, 0.2);
+        }
+
+        /* Checkerboard background */
+        .checkerboard {
+            background-color: #16192b;
+            background-image: 
+                linear-gradient(45deg, #0f111f 25%, transparent 25%, transparent 75%, #0f111f 75%, #0f111f), 
+                linear-gradient(45deg, #0f111f 25%, transparent 25%, transparent 75%, #0f111f 75%, #0f111f);
+            background-size: 16px 16px;
+            background-position: 0 0, 8px 8px;
+        }
+
+        .view-body {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ref-image {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6));
+        }
+
+        /* Canvas Workspace with Pan & Zoom */
+        .canvas-viewport {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            cursor: default;
+        }
+
+        /* We apply zoom/pan transform here */
+        #canvasWrapper {
+            position: relative;
+            transform-origin: 0 0;
+            display: inline-block;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            background: transparent;
+        }
+
+        #resultCanvas {
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        /* Grid Overlay Layer */
+        #gridOverlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: none;
+        }
+
+        #gridOverlay.active {
+            display: block;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+        }
+
+        /* Floating Toolbar */
+        .toolbar {
+            position: absolute;
+            top: 60px;
+            left: 16px;
+            background: rgba(15, 17, 30, 0.9);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 20;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(8px);
+        }
+
+        .tool-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-smooth);
+            position: relative;
+        }
+
+        .tool-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .tool-btn.active {
+            color: #0b0d19;
+            background: var(--accent-blue);
+            box-shadow: var(--shadow-glow);
+        }
+
+        /* Tooltip style */
+        .tool-btn::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 42px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #05060b;
+            color: var(--text-primary);
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border: 1px solid var(--card-border);
+        }
+
+        .tool-btn:hover::after {
+            opacity: 1;
+        }
+
+        /* Bottom Palette container */
+        .palette-card {
+            background: #0f1224;
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: var(--shadow-lg);
+            flex-shrink: 0;
+        }
+
+        .palette-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .palette-body {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            align-items: center;
+        }
+
+        /* Custom swatch structure */
+        .palette-swatch-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .palette-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            position: relative;
+        }
+
+        .palette-swatch:hover {
+            transform: scale(1.1);
+        }
+
+        .palette-swatch-wrapper.active-swatch .palette-swatch {
+            border-color: var(--text-primary);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+            transform: scale(1.05);
+        }
+
+        .palette-swatch-label {
+            font-size: 9px;
+            color: var(--text-dark);
+            margin-top: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Swatch editing context overlays */
+        .swatch-actions {
+            position: absolute;
+            top: -16px;
+            background: #05060b;
+            border: 1px solid var(--card-border);
+            border-radius: 4px;
+            display: none;
+            gap: 2px;
+            padding: 2px;
+            z-index: 30;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .palette-swatch-wrapper:hover .swatch-actions {
+            display: flex;
+        }
+
+        .swatch-action-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 8px;
+            cursor: pointer;
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .swatch-action-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        /* Code panel right */
+        .code-container {
+            flex: 1;
+            background: #05070f;
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .code-header {
+            background: rgba(26, 30, 54, 0.4);
+            border-bottom: 1px solid var(--card-border);
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-header span {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--accent-green);
+            letter-spacing: 0.5px;
+        }
+
+        textarea.code-area {
+            width: 100%;
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--accent-blue);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 16px;
+            resize: none;
+            outline: none;
+            overflow: auto;
+            line-height: 1.5;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            background: #1e223a;
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #2b3152;
+            border-color: var(--accent-blue);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-accent {
+            background: var(--accent-green);
+            color: #0b0d19;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(195, 232, 141, 0.2);
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-accent:hover:not(:disabled) {
+            box-shadow: 0 0 15px var(--accent-green-glow);
+            background: #d4f0a5;
+        }
+
+        .btn-accent:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Overlay loader */
+        .overlay-loader {
+            position: absolute;
+            inset: 0;
+            background: rgba(11, 13, 25, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            z-index: 50;
+            backdrop-filter: blur(4px);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(130, 170, 255, 0.1);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 15px rgba(130, 170, 255, 0.3);
+        }
+
+        .loading-text {
+            font-size: 12px;
+            color: var(--accent-blue);
+            font-weight: 600;
+            letter-spacing: 2px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        /* Shortcut panel */
+        .shortcuts-list {
+            font-size: 10px;
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .shortcut-kbd {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(255,255,255,0.05);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: var(--text-secondary);
+        }
+
+        /* UI Toast Alerts */
+        #toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translate(-50%, 100px);
+            background: rgba(15, 17, 30, 0.95);
+            border: 1px solid var(--accent-green);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 15px var(--accent-green-glow);
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            pointer-events: none;
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        #toast.active {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+
+        .toast-success-icon {
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        /* Prompt Screen for Upload */
+        .empty-prompt {
+            color: var(--text-dark);
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .empty-prompt-icon {
+            font-size: 40px;
+            opacity: 0.5;
+        }
+
+        /* Ghost Image Overlay style */
+        #canvasGhostImage {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            z-index: 0;
+            image-rendering: auto;
+            display: none;
+            transition: var(--transition-smooth);
+        }
+
+        #canvasGhostImage.active {
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="header-logo">
+            <div class="logo-icon">🤖</div>
+            <div class="header-titles">
+                <h1>Auto Pixel-Mapper / 万能图像像素映射器</h1>
+                <p>K-Means 色彩聚类 & 像素编辑器 & 代码生成工具</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="btnToggleSplit" class="btn-secondary" style="padding: 6px 12px; font-size: 11px;">
+                🖥️ 视图切换
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+        
+        <!-- Left Panel: Import & Settings -->
+        <aside>
+            <!-- 1. Source Image Upload -->
+            <div class="card">
+                <h3 class="card-title">📂 1. 导入源图像</h3>
+                <div id="dropZone" class="upload-zone">
+                    <span class="upload-icon">🪐</span>
+                    <span class="upload-text">拖放图片或点击上传</span>
+                    <span class="upload-subtext">支持 JPG, PNG, WEBP</span>
+                    <input type="file" id="imageUpload" class="hidden" style="display: none;" accept="image/*">
+                </div>
+            </div>
+
+            <!-- 1.5. Background Removal Preprocessing -->
+            <div class="card">
+                <h3 class="card-title">✂️ 1.5. 去除单色背景 (预处理)</h3>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="chkRemoveBg">
+                    <span>启用单色背景去除</span>
+                </label>
+                <div id="bgRemoveSettings" style="opacity: 0.4; pointer-events: none; transition: var(--transition-smooth); display: flex; flex-direction: column; gap: 12px; margin-top: 4px;">
+                    <div class="input-group">
+                        <div class="input-label">
+                            <span>目标背景色</span>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="color" id="bgKeyColor" value="#FFFFFF" style="width: 44px; height: 28px; border: none; border-radius: 4px; cursor: pointer; background: transparent; padding: 0;">
+                            <span id="bgKeyColorHex" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent-blue);">#FFFFFF</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">
+                            <span>颜色容差范围 (Tolerance)</span>
+                            <span id="bgToleranceVal" class="input-val">30</span>
+                        </div>
+                        <input type="range" id="bgTolerance" min="5" max="150" step="5" value="30">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Processing Parameters -->
+            <div class="card">
+                <h3 class="card-title">⚙️ 2. 映射参数设置</h3>
+                
+                <!-- Resolution Slider -->
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>目标精度宽度</span>
+                        <span id="resVal" class="input-val">96 px</span>
+                    </div>
+                    <input type="range" id="resolution" min="16" max="160" step="8" value="96">
+                </div>
+
+                <!-- Aspect Ratio Toggle -->
+                <div class="input-group">
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="chkAspect" checked>
+                        <span>锁定原图宽高比例 (高度自适应)</span>
+                    </label>
+                </div>
+
+                <!-- Palette Selector -->
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>调色板模式</span>
+                    </div>
+                    <select id="paletteMode">
+                        <option value="auto">AI 自动提取色彩 (K-Means++)</option>
+                        <option value="saber">Saber 专属 16 色</option>
+                        <option value="gameboy">经典 Gameboy (4色)</option>
+                        <option value="nes">任天堂 NES (30色)</option>
+                        <option value="pico8">PICO-8 官方 16 色</option>
+                        <option value="sweetie16">Sweetie 甜蜜 16 色</option>
+                    </select>
+                </div>
+
+                <!-- Cluster Color Count (Auto mode only) -->
+                <div id="colorCountDiv" class="input-group">
+                    <div class="input-label">
+                        <span>聚类提取颜色数量</span>
+                        <span id="colorVal" class="input-val">16 色</span>
+                    </div>
+                    <input type="range" id="colorCount" min="2" max="64" step="1" value="16">
+                </div>
+            </div>
+
+            <!-- Trace overlay settings -->
+            <div class="card">
+                <h3 class="card-title">👁️ 3. 描摹辅助设置</h3>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="chkGhost">
+                    <span>开启背景半透明描摹</span>
+                </label>
+                <div class="input-group" id="ghostOpacityDiv" style="opacity: 0.5; pointer-events: none; transition: var(--transition-smooth);">
+                    <div class="input-label">
+                        <span>背景不透明度</span>
+                        <span id="ghostOpacityVal" class="input-val">30%</span>
+                    </div>
+                    <input type="range" id="ghostOpacity" min="10" max="90" step="5" value="30">
+                </div>
+            </div>
+
+            <!-- Run K-Means Button -->
+            <button id="btnProcess" class="btn-neon btn-blue" disabled>
+                ⚡ 开始自动化映射
+            </button>
+        </aside>
+
+        <!-- Center Panel: Editor Viewport -->
+        <section class="editor-container">
+            
+            <!-- Splittable Area -->
+            <div id="workspaceSplit" class="workspace-split">
+                
+                <!-- Reference Card -->
+                <div class="view-card ref-card">
+                    <div class="view-header">
+                        <div class="view-title">🖼️ 原始参考图</div>
+                    </div>
+                    <div class="view-body checkerboard">
+                        <img id="sourceImage" class="ref-image" style="display: none;">
+                        <div id="uploadPrompt" class="empty-prompt">
+                            <span class="empty-prompt-icon">📥</span>
+                            等待导入图像...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Pixel Canvas Card -->
+                <div class="view-card">
+                    <div class="view-header">
+                        <div class="view-title">🕹️ 像素映射与手工编辑</div>
+                        <span id="resultMeta" class="view-meta" style="display: none;">96x96 | 16 Colors</span>
+                    </div>
+                    <div class="view-body checkerboard" id="viewport">
+                        
+                        <!-- Floating Editor Tools -->
+                        <div class="toolbar">
+                            <button class="tool-btn active" id="toolPencil" data-tooltip="铅笔工具 [B] (左键绘制)">✏️</button>
+                            <button class="tool-btn" id="toolEraser" data-tooltip="橡皮擦 [E]">🧼</button>
+                            <button class="tool-btn" id="toolFill" data-tooltip="油漆桶 [F]">🪣</button>
+                            <button class="tool-btn" id="toolPicker" data-tooltip="吸色器 [I]">🧪</button>
+                            <button class="tool-btn" id="toolPan" data-tooltip="抓手工具 [H] (拖拽画布)">🖐️</button>
+                            <button class="tool-btn" id="toolGrid" data-tooltip="网格线 [G] (开关)">🌐</button>
+                            <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 4px 0;"></div>
+                            <button class="tool-btn" id="toolUndo" data-tooltip="撤销 [Ctrl+Z]" disabled>↩️</button>
+                            <button class="tool-btn" id="toolRedo" data-tooltip="重做 [Ctrl+Y]" disabled>↪️</button>
+                            <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 4px 0;"></div>
+                            <button class="tool-btn" id="toolZoomIn" data-tooltip="放大 (滚轮向上)">➕</button>
+                            <button class="tool-btn" id="toolZoomOut" data-tooltip="缩小 (滚轮向下)">➖</button>
+                            <button class="tool-btn" id="toolRecenter" data-tooltip="重置画布居中">🎯</button>
+                        </div>
+
+                        <!-- Zoom/Pan Canvas Wrapper -->
+                        <div id="canvasWrapper" style="display: none;">
+                            <!-- Ghost trace underneath -->
+                            <img id="canvasGhostImage">
+                            <!-- Main Pixel Canvas -->
+                            <canvas id="resultCanvas"></canvas>
+                            <!-- Grid Overlay Layer -->
+                            <div id="gridOverlay"></div>
+                        </div>
+                        
+                        <div id="canvasPrompt" class="empty-prompt">
+                            <span class="empty-prompt-icon">💡</span>
+                            映射后，这里可以手工涂画
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Extracted Palette Swatches Display -->
+            <div class="palette-card">
+                <div class="palette-header">
+                    <span>🎨 动态映射调色盘 (双击或点击 swatch 操作项来修改调色盘，可实时重渲染画布)</span>
+                    <span style="color: var(--text-dark); text-transform: none;">左键点击选中颜色</span>
+                </div>
+                <div id="paletteDisplay" class="palette-body">
+                    <!-- Swatches will be generated dynamically -->
+                </div>
+            </div>
+            
+        </section>
+
+        <!-- Right Panel: Code Generator -->
+        <aside class="right-panel">
+            <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+                <h3 class="card-title">📋 3. 二维数组代码输出</h3>
+                
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>代码输出格式</span>
+                    </div>
+                    <select id="exportFormat">
+                        <option value="js">JavaScript / TypeScript</option>
+                        <option value="python">Python (2D list)</option>
+                        <option value="cpp">C / C++ (uint8_t array)</option>
+                        <option value="rust">Rust (2D array)</option>
+                        <option value="json">JSON Object</option>
+                        <option value="csv">CSV Data</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="chkAlign" checked>
+                        <span>对齐数据列宽 (垂直排版对齐)</span>
+                    </label>
+                </div>
+
+                <!-- Text code container -->
+                <div class="code-container">
+                    <div class="code-header">
+                        <span>CODE STREAM</span>
+                    </div>
+                    <textarea id="codeOutput" readonly class="code-area" placeholder="// 映射完成后在此处自动生成代码..."></textarea>
+                </div>
+
+                <!-- Copy & Download actions -->
+                <div class="btn-grid" style="margin-top: 8px;">
+                    <button id="btnCopyCode" class="btn-secondary" disabled>
+                        📄 复制代码
+                    </button>
+                    <button id="btnExportPNG" class="btn-accent" disabled>
+                        💾 导出 PNG
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sidebar bottom info / Shortcuts list -->
+            <div class="card">
+                <h3 class="card-title" style="font-size: 10px; border-bottom: none; padding-bottom: 0;">⌨️ 快捷键指南</h3>
+                <div class="shortcuts-list">
+                    <div class="shortcut-item"><span>铅笔工具</span><kbd class="shortcut-kbd">B</kbd></div>
+                    <div class="shortcut-item"><span>橡皮擦</span><kbd class="shortcut-kbd">E</kbd></div>
+                    <div class="shortcut-item"><span>油漆桶</span><kbd class="shortcut-kbd">F</kbd></div>
+                    <div class="shortcut-item"><span>吸色器</span><kbd class="shortcut-kbd">I</kbd></div>
+                    <div class="shortcut-item"><span>抓手拖拽</span><kbd class="shortcut-kbd">H</kbd></div>
+                    <div class="shortcut-item"><span>网格线</span><kbd class="shortcut-kbd">G</kbd></div>
+                    <div class="shortcut-item"><span>撤销</span><kbd class="shortcut-kbd">Ctrl+Z</kbd></div>
+                    <div class="shortcut-item"><span>重做</span><kbd class="shortcut-kbd">Ctrl+Y</kbd></div>
+                    <div class="shortcut-item"><span>拖拽画布</span><kbd class="shortcut-kbd">右键 / Space + 拖拽</kbd></div>
+                </div>
+            </div>
+        </aside>
+
+    </main>
+
+    <!-- Overlay Loader -->
+    <div class="overlay-loader" id="loader">
+        <div class="spinner"></div>
+        <div class="loading-text">PIXEL QUANTIZING...</div>
+    </div>
+
+    <!-- UI Toast Notification -->
+    <div id="toast">
+        <span class="toast-success-icon">✔</span>
+        <span id="toastMsg">操作成功！</span>
+    </div>
+
+    <!-- Hidden canvas for image scaling and processing -->
+    <canvas id="processCanvas" style="display: none;"></canvas>
+
+    <script>
+        // Preset Palettes (HEX list, first index [0] is reserved for transparent `#00000000`)
+        const Presets = {
+            saber: [
+                "#00000000", "#111522", "#243763", "#3b5998", "#f4c348", 
+                "#fff3e3", "#e8c1ab", "#c2c8d1", "#818a99", "#1ca350", 
+                "#ffffff", "#d49628", "#ffe392", "#d6aa22", "#e04a4a", "#65738e"
+            ],
+            gameboy: [
+                "#00000000", "#0f380f", "#306230", "#8bac0f", "#9bbc0f"
+            ],
+            nes: [
+                "#00000000",
+                "#7C0800", "#BC1E00", "#F83800", "#F87800", "#F8B800", "#F8F800", 
+                "#000000", "#1412A7", "#3B00A4", "#5C007E", "#680040", "#7C0015",
+                "#0058F8", "#0078F8", "#0098F8", "#00B8F8", "#00F8F8", "#F8F8F8",
+                "#FFFFFF", "#3CBCFC", "#6888FC", "#9878F8", "#F878F8", "#F85898",
+                "#00A800", "#00A844", "#00B800", "#00E8D8", "#00F83C", "#00F878"
+            ],
+            pico8: [
+                "#00000000",
+                "#000000", "#1D2B53", "#7E2553", "#008751", "#AB5236", "#5F574F", "#C2C3C7", 
+                "#FFF1E8", "#FF004D", "#FFA300", "#FFEC27", "#00E436", "#29ADFF", "#83769C", 
+                "#FF77A8", "#FFCCAA"
+            ],
+            sweetie16: [
+                "#00000000",
+                "#1a1c2c", "#5d275d", "#b13e53", "#ef7d57", "#ffcd75", "#a7f070", "#38b764", 
+                "#257179", "#29366f", "#3b5dc9", "#41a6f6", "#73eff7", "#f4f4f4", "#94b0c2", 
+                "#566c86", "#333c57"
+            ]
+        };
+
+        // DOM elements
+        const imageUpload = document.getElementById('imageUpload');
+        const dropZone = document.getElementById('dropZone');
+        const sourceImage = document.getElementById('sourceImage');
+        const canvasGhostImage = document.getElementById('canvasGhostImage');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const canvasPrompt = document.getElementById('canvasPrompt');
+        const btnProcess = document.getElementById('btnProcess');
+        const resolutionSlider = document.getElementById('resolution');
+        const resVal = document.getElementById('resVal');
+        const chkAspect = document.getElementById('chkAspect');
+        const paletteMode = document.getElementById('paletteMode');
+        const colorCountDiv = document.getElementById('colorCountDiv');
+        const colorCountSlider = document.getElementById('colorCount');
+        const colorVal = document.getElementById('colorVal');
+        const chkGhost = document.getElementById('chkGhost');
+        const ghostOpacityDiv = document.getElementById('ghostOpacityDiv');
+        const ghostOpacitySlider = document.getElementById('ghostOpacity');
+        const ghostOpacityVal = document.getElementById('ghostOpacityVal');
+        
+        // Background removal DOM elements
+        const chkRemoveBg = document.getElementById('chkRemoveBg');
+        const bgRemoveSettings = document.getElementById('bgRemoveSettings');
+        const bgKeyColor = document.getElementById('bgKeyColor');
+        const bgKeyColorHex = document.getElementById('bgKeyColorHex');
+        const bgTolerance = document.getElementById('bgTolerance');
+        const bgToleranceVal = document.getElementById('bgToleranceVal');
+        
+        const resultCanvas = document.getElementById('resultCanvas');
+        const ctx = resultCanvas.getContext('2d');
+        const processCanvas = document.getElementById('processCanvas');
+        const pCtx = processCanvas.getContext('2d', { willReadFrequently: true });
+        
+        const canvasWrapper = document.getElementById('canvasWrapper');
+        const gridOverlay = document.getElementById('gridOverlay');
+        const paletteDisplay = document.getElementById('paletteDisplay');
+        const codeOutput = document.getElementById('codeOutput');
+        
+        const btnCopyCode = document.getElementById('btnCopyCode');
+        const btnExportPNG = document.getElementById('btnExportPNG');
+        const resultMeta = document.getElementById('resultMeta');
+        const loader = document.getElementById('loader');
+        const btnToggleSplit = document.getElementById('btnToggleSplit');
+        const workspaceSplit = document.getElementById('workspaceSplit');
+        
+        // Editor controls
+        const viewport = document.getElementById('viewport');
+        const toolPencil = document.getElementById('toolPencil');
+        const toolEraser = document.getElementById('toolEraser');
+        const toolFill = document.getElementById('toolFill');
+        const toolPicker = document.getElementById('toolPicker');
+        const toolPan = document.getElementById('toolPan');
+        const toolGrid = document.getElementById('toolGrid');
+        const toolUndo = document.getElementById('toolUndo');
+        const toolRedo = document.getElementById('toolRedo');
+        const toolZoomIn = document.getElementById('toolZoomIn');
+        const toolZoomOut = document.getElementById('toolZoomOut');
+        const toolRecenter = document.getElementById('toolRecenter');
+
+        // Application State
+        let currentImageData = null;
+        let originalImageSrc = null;
+        let preprocessedCanvas = null;
+        let generatedMatrix = [];
+        let generatedPalette = [];
+        let currentRes = 96;
+        let activeColorIdx = 1; 
+        
+        // Drawing & Panning state
+        let activeTool = 'pencil'; // pencil, eraser, fill, picker, pan
+        let isDrawing = false;
+        let isPanning = false;
+        let spacePressed = false;
+        let lastX = 0;
+        let lastY = 0;
+        
+        // Zoom/Pan offset variables
+        let zoom = 4;
+        let panX = 0;
+        let panY = 0;
+        let startX = 0;
+        let startY = 0;
+        
+        // Grid State
+        let gridActive = false;
+
+        // Undo/Redo stacks
+        let undoStack = [];
+        let redoStack = [];
+
+        // --- Event Listeners for UI Options ---
+        resolutionSlider.addEventListener('input', (e) => {
+            resVal.innerText = `${e.target.value} px`;
+        });
+
+        colorCountSlider.addEventListener('input', (e) => {
+            colorVal.innerText = `${e.target.value} 色`;
+        });
+
+        paletteMode.addEventListener('change', (e) => {
+            if (e.target.value === 'auto') {
+                colorCountDiv.style.opacity = '1';
+                colorCountDiv.style.pointerEvents = 'auto';
+            } else {
+                colorCountDiv.style.opacity = '0.4';
+                colorCountDiv.style.pointerEvents = 'none';
+            }
+        });
+
+        chkGhost.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                canvasGhostImage.classList.add('active');
+                ghostOpacityDiv.style.opacity = '1';
+                ghostOpacityDiv.style.pointerEvents = 'auto';
+            } else {
+                canvasGhostImage.classList.remove('active');
+                ghostOpacityDiv.style.opacity = '0.4';
+                ghostOpacityDiv.style.pointerEvents = 'none';
+            }
+        });
+
+        ghostOpacitySlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            ghostOpacityVal.innerText = `${val}%`;
+            canvasGhostImage.style.opacity = val / 100;
+        });
+
+        // Background removal controls listeners
+        chkRemoveBg.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                bgRemoveSettings.style.opacity = '1';
+                bgRemoveSettings.style.pointerEvents = 'auto';
+            } else {
+                bgRemoveSettings.style.opacity = '0.4';
+                bgRemoveSettings.style.pointerEvents = 'none';
+            }
+            preprocessSourceImage();
+        });
+
+        bgKeyColor.addEventListener('input', (e) => {
+            bgKeyColorHex.innerText = e.target.value.toUpperCase();
+            preprocessSourceImage();
+        });
+
+        bgTolerance.addEventListener('input', (e) => {
+            bgToleranceVal.innerText = e.target.value;
+            preprocessSourceImage();
+        });
+
+        // View Mode Toggle (Split View / Canvas Only)
+        btnToggleSplit.addEventListener('click', () => {
+            workspaceSplit.classList.toggle('focus-mode');
+            setTimeout(fitCanvas, 300); // Wait for transition animation to end
+        });
+
+        // --- File Upload & Drag-Drop Logic ---
+        dropZone.addEventListener('click', () => imageUpload.click());
+
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleImageFile(file);
+        });
+
+        // Drag events
+        ['dragenter', 'dragover'].forEach(name => {
+            dropZone.addEventListener(name, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--accent-blue)';
+                dropZone.style.background = 'rgba(130, 170, 255, 0.08)';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'rgba(130, 170, 255, 0.3)';
+                dropZone.style.background = 'rgba(130, 170, 255, 0.02)';
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const file = e.dataTransfer.files[0];
+            if (file) handleImageFile(file);
+        });
+
+        function handleImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                originalImageSrc = event.target.result;
+                const img = new Image();
+                img.onload = () => {
+                    uploadPrompt.style.display = 'none';
+                    sourceImage.src = img.src;
+                    sourceImage.style.display = 'block';
+                    
+                    canvasGhostImage.src = img.src;
+                    
+                    btnProcess.disabled = false;
+                    currentImageData = img;
+                    
+                    preprocessSourceImage();
+                    showToast("原图加载成功，点击 [开始自动化映射] 即可渲染。");
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function preprocessSourceImage() {
+            if (!originalImageSrc) return;
+            
+            const img = new Image();
+            img.onload = () => {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = img.naturalWidth;
+                tempCanvas.height = img.naturalHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(img, 0, 0);
+                
+                if (chkRemoveBg.checked) {
+                    const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                    const keyColor = hexToRgb(bgKeyColor.value);
+                    const tolerance = parseInt(bgTolerance.value);
+                    
+                    for (let i = 0; i < imgData.data.length; i += 4) {
+                        const r = imgData.data[i];
+                        const g = imgData.data[i+1];
+                        const b = imgData.data[i+2];
+                        const a = imgData.data[i+3];
+                        
+                        if (a === 0) continue;
+                        
+                        // Calculate Euclidean distance in RGB space
+                        const dist = Math.sqrt(
+                            (r - keyColor.r) ** 2 + 
+                            (g - keyColor.g) ** 2 + 
+                            (b - keyColor.b) ** 2
+                        );
+                        
+                        if (dist < tolerance) {
+                            imgData.data[i+3] = 0; // Make pixel transparent
+                        }
+                    }
+                    tempCtx.putImageData(imgData, 0, 0);
+                }
+                
+                preprocessedCanvas = tempCanvas;
+                
+                // Update previews
+                const dataURL = tempCanvas.toDataURL();
+                sourceImage.src = dataURL;
+                canvasGhostImage.src = dataURL;
+            };
+            img.src = originalImageSrc;
+        }
+
+        // --- Perceptual Color Utility Functions ---
+        function hexToRgb(hex) {
+            if (hex === "#00000000" || hex === "transparent") return {r:0, g:0, b:0, a:0};
+            let bigint = parseInt(hex.replace('#',''), 16);
+            return { 
+                r: (bigint >> 16) & 255, 
+                g: (bigint >> 8) & 255, 
+                b: bigint & 255, 
+                a: 255 
+            };
+        }
+
+        function rgbToHex(r, g, b, a=255) {
+            if (a < 128) return "#00000000";
+            return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1).toUpperCase();
+        }
+
+        // Fast perceptual distance formula based on weighted RGB values
+        function perceptualColorDistance(c1, c2) {
+            let rMean = (c1.r + c2.r) / 2;
+            let dR = c1.r - c2.r;
+            let dG = c1.g - c2.g;
+            let dB = c1.b - c2.b;
+            let weightR = 2 + rMean / 256;
+            let weightG = 4;
+            let weightB = 2 + (255 - rMean) / 256;
+            return weightR * dR * dR + weightG * dG * dG + weightB * dB * dB;
+        }
+
+        // K-Means Dominant Color Extraction
+        function extractDominantColors(imgData, k) {
+            const pixels = [];
+            for (let i = 0; i < imgData.data.length; i += 4) {
+                let r = imgData.data[i];
+                let g = imgData.data[i+1];
+                let b = imgData.data[i+2];
+                let a = imgData.data[i+3];
+                if (a < 128) continue; // Skip transparency
+                pixels.push({ r, g, b });
+            }
+
+            if (pixels.length === 0) return ["#00000000"];
+
+            // Deduplicate pixel set
+            const uniqueMap = new Map();
+            for (const p of pixels) {
+                const key = (p.r << 16) | (p.g << 8) | p.b;
+                uniqueMap.set(key, p);
+            }
+            const uniquePixels = Array.from(uniqueMap.values());
+
+            if (uniquePixels.length <= k) {
+                let palette = ["#00000000"];
+                for (const p of uniquePixels) {
+                    palette.push(rgbToHex(p.r, p.g, p.b));
+                }
+                return palette;
+            }
+
+            // Initialize centroids using K-means++ distant selection
+            let centroids = [];
+            centroids.push(uniquePixels[Math.floor(Math.random() * uniquePixels.length)]);
+            
+            while (centroids.length < k) {
+                let maxDist = -1;
+                let nextCentroid = null;
+                // Sample 500 candidate pixels to find the most distant cluster center
+                for (let i = 0; i < uniquePixels.length; i += Math.max(1, Math.floor(uniquePixels.length / 500))) {
+                    const p = uniquePixels[i];
+                    let minDistToCentroids = Infinity;
+                    for (const c of centroids) {
+                        let dist = perceptualColorDistance(p, c);
+                        if (dist < minDistToCentroids) minDistToCentroids = dist;
+                    }
+                    if (minDistToCentroids > maxDist) {
+                        maxDist = minDistToCentroids;
+                        nextCentroid = p;
+                    }
+                }
+                centroids.push(nextCentroid || uniquePixels[Math.floor(Math.random() * uniquePixels.length)]);
+            }
+
+            // K-Means loop
+            let iterations = 15;
+            let clusters = Array.from({ length: k }, () => []);
+            
+            while (iterations > 0) {
+                clusters = Array.from({ length: k }, () => []);
+                for (let i = 0; i < pixels.length; i += Math.max(1, Math.floor(pixels.length / 1000))) {
+                    const p = pixels[i];
+                    let minDist = Infinity;
+                    let bestClusterIdx = 0;
+                    for (let c = 0; c < k; c++) {
+                        let dist = perceptualColorDistance(p, centroids[c]);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            bestClusterIdx = c;
+                        }
+                    }
+                    clusters[bestClusterIdx].push(p);
+                }
+                
+                // Recalculate
+                for (let c = 0; c < k; c++) {
+                    if (clusters[c].length === 0) {
+                        centroids[c] = uniquePixels[Math.floor(Math.random() * uniquePixels.length)];
+                        continue;
+                    }
+                    let sumR = 0, sumG = 0, sumB = 0;
+                    for (const p of clusters[c]) {
+                        sumR += p.r; sumG += p.g; sumB += p.b;
+                    }
+                    centroids[c] = {
+                        r: Math.round(sumR / clusters[c].length),
+                        g: Math.round(sumG / clusters[c].length),
+                        b: Math.round(sumB / clusters[c].length)
+                    };
+                }
+                iterations--;
+            }
+
+            // Generate HEX array
+            let palette = ["#00000000"];
+            for (const c of centroids) {
+                let hex = rgbToHex(c.r, c.g, c.b);
+                if (!palette.includes(hex)) palette.push(hex);
+            }
+            return palette;
+        }
+
+        // --- Processing & Quantization Pipeline ---
+        function showLoader(visible) {
+            loader.style.display = visible ? 'flex' : 'none';
+        }
+
+        btnProcess.addEventListener('click', () => {
+            if (!currentImageData) return;
+            showLoader(true);
+            
+            // Short delay to allow browser thread to show loading state
+            setTimeout(() => {
+                try {
+                    runMappingPipeline();
+                } catch(err) {
+                    console.error(err);
+                    showToast("映射出错：" + err.message);
+                } finally {
+                    showLoader(false);
+                }
+            }, 50);
+        });
+
+        function runMappingPipeline() {
+            const targetW = parseInt(resolutionSlider.value);
+            let targetH = targetW;
+            
+            // Calculate height using aspect ratio if checked
+            if (chkAspect.checked && currentImageData) {
+                const aspect = currentImageData.naturalWidth / currentImageData.naturalHeight;
+                targetH = Math.round(targetW / aspect);
+            }
+            
+            currentRes = targetW;
+            
+            // Setup processing canvas
+            processCanvas.width = targetW;
+            processCanvas.height = targetH;
+            
+            pCtx.imageSmoothingEnabled = true; // High quality bilinear scaling for downscale averages
+            pCtx.clearRect(0, 0, targetW, targetH);
+            if (preprocessedCanvas) {
+                pCtx.drawImage(preprocessedCanvas, 0, 0, targetW, targetH);
+            } else if (currentImageData) {
+                pCtx.drawImage(currentImageData, 0, 0, targetW, targetH);
+            }
+            
+            const rawImgData = pCtx.getImageData(0, 0, targetW, targetH);
+            
+            // Palette resolution
+            const mode = paletteMode.value;
+            let targetPalette = [];
+            if (mode === 'auto') {
+                const k = parseInt(colorCountSlider.value);
+                targetPalette = extractDominantColors(rawImgData, k);
+            } else {
+                targetPalette = [...Presets[mode]];
+            }
+            
+            generatedPalette = targetPalette;
+            const rgbPalette = targetPalette.map(h => hexToRgb(h));
+            
+            // Quantize image & build 2D matrix
+            resultCanvas.width = targetW;
+            resultCanvas.height = targetH;
+            ctx.clearRect(0, 0, targetW, targetH);
+            
+            // Save state for undo
+            saveHistoryState();
+            
+            generatedMatrix = [];
+            
+            for (let y = 0; y < targetH; y++) {
+                let row = [];
+                for (let x = 0; x < targetW; x++) {
+                    const idx = (y * targetW + x) * 4;
+                    const pr = rawImgData.data[idx];
+                    const pg = rawImgData.data[idx+1];
+                    const pb = rawImgData.data[idx+2];
+                    const pa = rawImgData.data[idx+3];
+                    
+                    let bestIdx = 0; // Transparent index
+                    
+                    if (pa >= 128) {
+                        let minDist = Infinity;
+                        // Map to closest index matching opacity (skip index 0)
+                        for (let i = 1; i < rgbPalette.length; i++) {
+                            const dist = perceptualColorDistance({r:pr, g:pg, b:pb}, rgbPalette[i]);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                bestIdx = i;
+                            }
+                        }
+                    }
+                    
+                    row.push(bestIdx);
+                    
+                    // Draw to final canvas
+                    if (bestIdx !== 0 && targetPalette[bestIdx]) {
+                        ctx.fillStyle = targetPalette[bestIdx];
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+                generatedMatrix.push(row);
+            }
+            
+            // UI refresh
+            canvasPrompt.style.display = 'none';
+            canvasWrapper.style.display = 'block';
+            
+            resultMeta.style.display = 'block';
+            resultMeta.innerText = `${targetW}x${targetH} | ${targetPalette.length - 1} 色`;
+            
+            // Switch brush default
+            activeColorIdx = targetPalette.length > 1 ? 1 : 0;
+            
+            // Sync Grid size
+            if (gridActive) {
+                gridOverlay.style.backgroundSize = `calc(100% / ${targetW}) calc(100% / ${targetH})`;
+            }
+            
+            renderPaletteDisplay(targetPalette);
+            generateCodeOutput();
+            
+            btnCopyCode.disabled = false;
+            btnExportPNG.disabled = false;
+            
+            // Fitting zoom
+            fitCanvas();
+            showToast(`已映射为 ${targetW}x${targetH} 的像素阵列！`);
+        }
+
+        // --- Palette Actions & Modifications ---
+        function renderPaletteDisplay(palette) {
+            paletteDisplay.innerHTML = '';
+            
+            // Add custom color button
+            const addBtn = document.createElement('button');
+            addBtn.className = 'w-8 h-8 rounded border border-dashed border-accent-blue/30 flex items-center justify-center cursor-pointer hover:border-accent-blue hover:bg-accent-blue/10 text-accent-blue transition-colors shrink-0 mr-1';
+            addBtn.innerHTML = '＋';
+            addBtn.title = '添加自定义颜色';
+            addBtn.onclick = addPaletteColor;
+            paletteDisplay.appendChild(addBtn);
+            
+            palette.forEach((hex, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = `palette-swatch-wrapper ${idx === activeColorIdx ? 'active-swatch' : ''}`;
+                
+                const swatch = document.createElement('div');
+                swatch.className = 'palette-swatch';
+                
+                if (idx === 0) {
+                    swatch.classList.add('checkerboard');
+                    swatch.innerHTML = '<span style="font-size: 10px; display: flex; align-items: center; justify-content: center; height:100%; opacity: 0.6;">🧼</span>';
+                    swatch.title = '橡皮擦 (将像素清除为透明)';
+                } else {
+                    swatch.style.backgroundColor = hex;
+                    swatch.title = `Index: ${idx}\n${hex}`;
+                }
+                
+                swatch.onclick = () => {
+                    activeColorIdx = idx;
+                    renderPaletteDisplay(palette);
+                };
+                
+                wrapper.appendChild(swatch);
+                
+                // Index Label
+                const label = document.createElement('span');
+                label.className = 'palette-swatch-label';
+                label.innerText = idx === 0 ? 'Eraser' : `#${idx}`;
+                wrapper.appendChild(label);
+                
+                // Context swatches menu on hover (except Eraser)
+                if (idx !== 0) {
+                    const actions = document.createElement('div');
+                    actions.className = 'swatch-actions';
+                    
+                    // Modify picker
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'swatch-action-btn';
+                    editBtn.innerHTML = '✏️';
+                    editBtn.title = '修改该色值';
+                    
+                    const pickerInput = document.createElement('input');
+                    pickerInput.type = 'color';
+                    pickerInput.value = hex;
+                    pickerInput.style.display = 'none';
+                    pickerInput.addEventListener('input', (e) => {
+                        generatedPalette[idx] = e.target.value;
+                        redrawCanvas();
+                        generateCodeOutput();
+                        renderPaletteDisplay(generatedPalette);
+                    });
+                    
+                    editBtn.appendChild(pickerInput);
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        pickerInput.click();
+                    };
+                    
+                    // Remove swatch
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'swatch-action-btn';
+                    delBtn.innerHTML = '❌';
+                    delBtn.title = '删除颜色并重映射像素';
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deletePaletteColor(idx);
+                    };
+                    
+                    actions.appendChild(editBtn);
+                    actions.appendChild(delBtn);
+                    wrapper.appendChild(actions);
+                }
+                
+                paletteDisplay.appendChild(wrapper);
+            });
+        }
+
+        function addPaletteColor() {
+            saveHistoryState();
+            const newColor = "#FF5555";
+            generatedPalette.push(newColor);
+            renderPaletteDisplay(generatedPalette);
+            generateCodeOutput();
+            showToast("已添加新颜色，双击或点击铅笔可自定义修改。");
+        }
+
+        function deletePaletteColor(deletedIdx) {
+            if (deletedIdx === 0) return;
+            saveHistoryState();
+            
+            const w = resultCanvas.width;
+            const h = resultCanvas.height;
+            
+            // Adjust matrix references
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const val = generatedMatrix[y][x];
+                    if (val === deletedIdx) {
+                        generatedMatrix[y][x] = 0; // fall back to transparent
+                    } else if (val > deletedIdx) {
+                        generatedMatrix[y][x] = val - 1; // shift lower indices down
+                    }
+                }
+            }
+            
+            generatedPalette.splice(deletedIdx, 1);
+            
+            // Adjust active color index
+            if (activeColorIdx === deletedIdx) {
+                activeColorIdx = Math.max(1, deletedIdx - 1);
+            } else if (activeColorIdx > deletedIdx) {
+                activeColorIdx--;
+            }
+            
+            redrawCanvas();
+            renderPaletteDisplay(generatedPalette);
+            generateCodeOutput();
+            showToast("颜色已移除，相关关联像素已被重映射");
+        }
+
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+            for (let y = 0; y < resultCanvas.height; y++) {
+                for (let x = 0; x < resultCanvas.width; x++) {
+                    const val = generatedMatrix[y][x];
+                    if (val !== 0 && generatedPalette[val]) {
+                        ctx.fillStyle = generatedPalette[val];
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+            }
+        }
+
+        // --- Canvas Coordinates & Pan / Zoom Actions ---
+        function getCanvasCoords(e) {
+            const rect = resultCanvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / (rect.width / resultCanvas.width));
+            const y = Math.floor((e.clientY - rect.top) / (rect.height / resultCanvas.height));
+            return {
+                x: Math.max(0, Math.min(resultCanvas.width - 1, x)),
+                y: Math.max(0, Math.min(resultCanvas.height - 1, y))
+            };
+        }
+
+        function getTouchCoords(e) {
+            const touch = e.touches[0];
+            const rect = resultCanvas.getBoundingClientRect();
+            const x = Math.floor((touch.clientX - rect.left) / (rect.width / resultCanvas.width));
+            const y = Math.floor((touch.clientY - rect.top) / (rect.height / resultCanvas.height));
+            return {
+                x: Math.max(0, Math.min(resultCanvas.width - 1, x)),
+                y: Math.max(0, Math.min(resultCanvas.height - 1, y))
+            };
+        }
+
+        function updateTransform() {
+            canvasWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+        }
+
+        function centerCanvas() {
+            const rect = viewport.getBoundingClientRect();
+            const cw = resultCanvas.width * zoom;
+            const ch = resultCanvas.height * zoom;
+            panX = (rect.width - cw) / 2;
+            panY = (rect.height - ch) / 2;
+            updateTransform();
+        }
+
+        function fitCanvas() {
+            if (generatedMatrix.length === 0) return;
+            const rect = viewport.getBoundingClientRect();
+            const padding = 64;
+            const zoomX = (rect.width - padding) / resultCanvas.width;
+            const zoomY = (rect.height - padding) / resultCanvas.height;
+            zoom = Math.max(1, Math.floor(Math.min(zoomX, zoomY)));
+            centerCanvas();
+        }
+
+        // Mouse Wheel Zooming
+        viewport.addEventListener('wheel', (e) => {
+            if (generatedMatrix.length === 0) return;
+            e.preventDefault();
+            
+            const rect = viewport.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const canvasX = (mouseX - panX) / zoom;
+            const canvasY = (mouseY - panY) / zoom;
+            
+            const factor = 1.15;
+            if (e.deltaY < 0) {
+                zoom = Math.min(100, zoom * factor);
+            } else {
+                zoom = Math.max(0.5, zoom / factor);
+            }
+            
+            panX = mouseX - canvasX * zoom;
+            panY = mouseY - canvasY * zoom;
+            updateTransform();
+        }, { passive: false });
+
+        // --- Drawing Operations & Editing Tools ---
+        function setPixel(x, y, val) {
+            if (generatedMatrix[y] === undefined || generatedMatrix[y][x] === undefined) return;
+            if (generatedMatrix[y][x] === val) return;
+            generatedMatrix[y][x] = val;
+            
+            ctx.clearRect(x, y, 1, 1);
+            if (val !== 0 && generatedPalette[val]) {
+                ctx.fillStyle = generatedPalette[val];
+                ctx.fillRect(x, y, 1, 1);
+            }
+        }
+
+        // Bresenham's line drawing algorithm for fast mouse drag strokes
+        function drawStrokeLine(x0, y0, x1, y1, val) {
+            const dx = Math.abs(x1 - x0);
+            const dy = Math.abs(y1 - y0);
+            const sx = (x0 < x1) ? 1 : -1;
+            const sy = (y0 < y1) ? 1 : -1;
+            let err = dx - dy;
+
+            while (true) {
+                setPixel(x0, y0, val);
+                if (x0 === x1 && y0 === y1) break;
+                const e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; x0 += sx; }
+                if (e2 < dx) { err += dx; y0 += sy; }
+            }
+        }
+
+        // Flood fill algorithm
+        function executeFloodFill(startX, startY, fillVal) {
+            const targetVal = generatedMatrix[startY][startX];
+            if (targetVal === fillVal) return;
+            
+            saveHistoryState();
+            const w = resultCanvas.width;
+            const h = resultCanvas.height;
+            const queue = [[startX, startY]];
+            
+            while (queue.length > 0) {
+                const [cx, cy] = queue.shift();
+                if (generatedMatrix[cy][cx] !== targetVal) continue;
+                
+                setPixel(cx, cy, fillVal);
+                
+                if (cx > 0 && generatedMatrix[cy][cx - 1] === targetVal) queue.push([cx - 1, cy]);
+                if (cx < w - 1 && generatedMatrix[cy][cx + 1] === targetVal) queue.push([cx + 1, cy]);
+                if (cy > 0 && generatedMatrix[cy - 1][cx] === targetVal) queue.push([cx, cy - 1]);
+                if (cy < h - 1 && generatedMatrix[cy + 1][cx] === targetVal) queue.push([cx, cy + 1]);
+            }
+            generateCodeOutput();
+        }
+
+        // Handlers for Drawing Mouse Strokes
+        resultCanvas.addEventListener('mousedown', (e) => {
+            if (generatedMatrix.length === 0) return;
+            
+            // Check for panning modifier (Space key, middle button, right button, or active tool pan)
+            if (e.button === 1 || e.button === 2 || spacePressed || activeTool === 'pan') {
+                isPanning = true;
+                startX = e.clientX - panX;
+                startY = e.clientY - panY;
+                viewport.style.cursor = 'grabbing';
+                e.preventDefault();
+                return;
+            }
+            
+            if (e.button === 0) {
+                const coords = getCanvasCoords(e);
+                
+                if (activeTool === 'picker') {
+                    activeColorIdx = generatedMatrix[coords.y][coords.x];
+                    renderPaletteDisplay(generatedPalette);
+                    showToast(`吸取了颜色 Index: ${activeColorIdx}`);
+                    // Revert to pencil tool
+                    setActiveTool('pencil');
+                    return;
+                }
+                
+                if (activeTool === 'fill') {
+                    executeFloodFill(coords.x, coords.y, activeColorIdx);
+                    return;
+                }
+                
+                isDrawing = true;
+                saveHistoryState();
+                
+                const val = activeTool === 'eraser' ? 0 : activeColorIdx;
+                lastX = coords.x;
+                lastY = coords.y;
+                setPixel(coords.x, coords.y, val);
+            }
+        });
+
+        viewport.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                panX = e.clientX - startX;
+                panY = e.clientY - startY;
+                updateTransform();
+                return;
+            }
+            
+            if (isDrawing) {
+                const coords = getCanvasCoords(e);
+                const val = activeTool === 'eraser' ? 0 : activeColorIdx;
+                drawStrokeLine(lastX, lastY, coords.x, coords.y, val);
+                lastX = coords.x;
+                lastY = coords.y;
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isPanning) {
+                isPanning = false;
+                viewport.style.cursor = 'default';
+            }
+            if (isDrawing) {
+                isDrawing = false;
+                generateCodeOutput();
+            }
+        });
+
+        // Touch drawing support
+        resultCanvas.addEventListener('touchstart', (e) => {
+            if (generatedMatrix.length === 0) return;
+            
+            if (activeTool === 'pan' || spacePressed || e.touches.length > 1) {
+                isPanning = true;
+                startX = e.touches[0].clientX - panX;
+                startY = e.touches[0].clientY - panY;
+                e.preventDefault();
+                return;
+            }
+            
+            if (e.touches.length === 1) {
+                const coords = getTouchCoords(e);
+                
+                if (activeTool === 'picker') {
+                    activeColorIdx = generatedMatrix[coords.y][coords.x];
+                    renderPaletteDisplay(generatedPalette);
+                    setActiveTool('pencil');
+                    e.preventDefault();
+                    return;
+                }
+                
+                if (activeTool === 'fill') {
+                    executeFloodFill(coords.x, coords.y, activeColorIdx);
+                    e.preventDefault();
+                    return;
+                }
+                
+                isDrawing = true;
+                saveHistoryState();
+                
+                const val = activeTool === 'eraser' ? 0 : activeColorIdx;
+                lastX = coords.x;
+                lastY = coords.y;
+                setPixel(coords.x, coords.y, val);
+                e.preventDefault();
+            }
+        });
+
+        resultCanvas.addEventListener('touchmove', (e) => {
+            if (isPanning && e.touches.length === 1) {
+                panX = e.touches[0].clientX - startX;
+                panY = e.touches[0].clientY - startY;
+                updateTransform();
+                e.preventDefault();
+                return;
+            }
+            
+            if (isDrawing && e.touches.length === 1) {
+                const coords = getTouchCoords(e);
+                const val = activeTool === 'eraser' ? 0 : activeColorIdx;
+                drawStrokeLine(lastX, lastY, coords.x, coords.y, val);
+                lastX = coords.x;
+                lastY = coords.y;
+                e.preventDefault();
+            }
+        });
+
+        resultCanvas.addEventListener('touchend', () => {
+            isPanning = false;
+            if (isDrawing) {
+                isDrawing = false;
+                generateCodeOutput();
+            }
+        });
+
+        // Prevent Right click context menu on viewport for dragging
+        viewport.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // --- Toolbar Buttons Binding ---
+        function updateToolbarUI() {
+            [toolPencil, toolEraser, toolFill, toolPicker, toolPan].forEach(b => b.classList.remove('active'));
+            if (activeTool === 'pencil') toolPencil.classList.add('active');
+            else if (activeTool === 'eraser') toolEraser.classList.add('active');
+            else if (activeTool === 'fill') toolFill.classList.add('active');
+            else if (activeTool === 'picker') toolPicker.classList.add('active');
+            else if (activeTool === 'pan') toolPan.classList.add('active');
+        }
+
+        function setActiveTool(tool) {
+            activeTool = tool;
+            updateToolbarUI();
+        }
+
+        toolPencil.onclick = () => setActiveTool('pencil');
+        toolEraser.onclick = () => setActiveTool('eraser');
+        toolFill.onclick = () => setActiveTool('fill');
+        toolPicker.onclick = () => setActiveTool('picker');
+        toolPan.onclick = () => setActiveTool('pan');
+
+        toolGrid.onclick = () => {
+            gridActive = !gridActive;
+            if (gridActive) {
+                toolGrid.classList.add('active');
+                gridOverlay.classList.add('active');
+                if (generatedMatrix.length > 0) {
+                    gridOverlay.style.backgroundSize = `calc(100% / ${resultCanvas.width}) calc(100% / ${resultCanvas.height})`;
+                }
+            } else {
+                toolGrid.classList.remove('active');
+                gridOverlay.classList.remove('active');
+            }
+        };
+
+        toolZoomIn.onclick = () => {
+            zoom = Math.min(100, zoom * 1.25);
+            updateTransform();
+        };
+
+        toolZoomOut.onclick = () => {
+            zoom = Math.max(0.5, zoom / 1.25);
+            updateTransform();
+        };
+
+        toolRecenter.onclick = () => {
+            fitCanvas();
+        };
+
+        // --- History Manager (Undo / Redo) ---
+        function saveHistoryState() {
+            const matrixSnapshot = generatedMatrix.map(row => [...row]);
+            undoStack.push(matrixSnapshot);
+            if (undoStack.length > 50) undoStack.shift();
+            redoStack = []; // Clear redo stack on new operation
+            updateHistoryButtons();
+        }
+
+        function executeUndo() {
+            if (undoStack.length === 0) return;
+            const currentSnapshot = generatedMatrix.map(row => [...row]);
+            redoStack.push(currentSnapshot);
+            
+            generatedMatrix = undoStack.pop();
+            
+            resultCanvas.width = generatedMatrix[0].length;
+            resultCanvas.height = generatedMatrix.length;
+            redrawCanvas();
+            generateCodeOutput();
+            updateHistoryButtons();
+            showToast("撤销操作");
+        }
+
+        function executeRedo() {
+            if (redoStack.length === 0) return;
+            const currentSnapshot = generatedMatrix.map(row => [...row]);
+            undoStack.push(currentSnapshot);
+            
+            generatedMatrix = redoStack.pop();
+            
+            resultCanvas.width = generatedMatrix[0].length;
+            resultCanvas.height = generatedMatrix.length;
+            redrawCanvas();
+            generateCodeOutput();
+            updateHistoryButtons();
+            showToast("重做操作");
+        }
+
+        function updateHistoryButtons() {
+            toolUndo.disabled = undoStack.length === 0;
+            toolRedo.disabled = redoStack.length === 0;
+        }
+
+        toolUndo.onclick = executeUndo;
+        toolRedo.onclick = executeRedo;
+
+        // --- Keyboard Shortcuts & Modifiers ---
+        window.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                return; // Ignore inputs
+            }
+
+            const key = e.key.toLowerCase();
+            
+            // Undo/Redo key detection
+            if ((e.ctrlKey || e.metaKey) && key === 'z') {
+                e.preventDefault();
+                executeUndo();
+            } else if ((e.ctrlKey || e.metaKey) && key === 'y') {
+                e.preventDefault();
+                executeRedo();
+            } else if (e.code === 'Space') {
+                spacePressed = true;
+                viewport.style.cursor = 'grab';
+                e.preventDefault();
+            } else {
+                switch(key) {
+                    case 'b': setActiveTool('pencil'); break;
+                    case 'e': setActiveTool('eraser'); break;
+                    case 'f': setActiveTool('fill'); break;
+                    case 'i': setActiveTool('picker'); break;
+                    case 'h': setActiveTool('pan'); break;
+                    case 'g': toolGrid.click(); break;
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                spacePressed = false;
+                viewport.style.cursor = 'default';
+            }
+        });
+
+        // --- Exporter & Code Generator Logic ---
+        const exportFormat = document.getElementById('exportFormat');
+        const chkAlign = document.getElementById('chkAlign');
+
+        exportFormat.addEventListener('change', generateCodeOutput);
+        chkAlign.addEventListener('change', generateCodeOutput);
+
+        function generateCodeOutput() {
+            if (generatedMatrix.length === 0) return;
+            
+            const format = exportFormat.value;
+            const align = chkAlign.checked;
+            
+            const w = resultCanvas.width;
+            const h = resultCanvas.height;
+            const digits = (generatedPalette.length - 1).toString().length;
+            
+            let output = "";
+            
+            function formatRowData(row) {
+                if (align) {
+                    return row.map(v => v.toString().padStart(digits, ' ')).join(', ');
+                }
+                return row.join(',');
+            }
+            
+            if (format === 'js') {
+                output += `// ==========================================\n`;
+                output += `// Auto-Generated Pixel Map: ${w}x${h}\n`;
+                output += `// ==========================================\n\n`;
+                output += `const MAP_PALETTE = [\n`;
+                generatedPalette.forEach((c, idx) => {
+                    output += `  "${c}", // [${idx}]\n`;
+                });
+                output += `];\n\n`;
+                output += `const PIXEL_MATRIX = [\n`;
+                generatedMatrix.forEach(row => {
+                    output += `  [${formatRowData(row)}],\n`;
+                });
+                output += `];\n\n`;
+                output += `/**\n * Usage Example:\n`;
+                output += ` * ctx.fillStyle = MAP_PALETTE[ PIXEL_MATRIX[y][x] ];\n`;
+                output += ` * ctx.fillRect(x * size, y * size, size, size);\n */`;
+            } 
+            else if (format === 'python') {
+                output += `# Auto-Generated Pixel Map: ${w}x${h}\n`;
+                output += `MAP_PALETTE = [\n`;
+                generatedPalette.forEach(c => {
+                    output += `    "${c}",\n`;
+                });
+                output += `]\n\n`;
+                output += `PIXEL_MATRIX = [\n`;
+                generatedMatrix.forEach(row => {
+                    output += `    [${formatRowData(row)}],\n`;
+                });
+                output += `]\n`;
+            } 
+            else if (format === 'cpp') {
+                output += `// Auto-Generated Pixel Map: ${w}x${h}\n`;
+                output += `#include <stdint.h>\n\n`;
+                output += `const char* MAP_PALETTE[] = {\n`;
+                generatedPalette.forEach(c => {
+                    output += `    "${c}",\n`;
+                });
+                output += `};\n\n`;
+                output += `const uint8_t PIXEL_MATRIX[${h}][${w}] = {\n`;
+                generatedMatrix.forEach(row => {
+                    output += `    {${formatRowData(row)}},\n`;
+                });
+                output += `};\n`;
+            } 
+            else if (format === 'rust') {
+                output += `// Auto-Generated Pixel Map: ${w}x${h}\n`;
+                output += `const MAP_PALETTE: [&str; ${generatedPalette.length}] = [\n`;
+                generatedPalette.forEach(c => {
+                    output += `    "${c}",\n`;
+                });
+                output += `];\n\n`;
+                output += `const PIXEL_MATRIX: [[u8; ${w}]; ${h}] = [\n`;
+                generatedMatrix.forEach(row => {
+                    output += `    [${formatRowData(row)}],\n`;
+                });
+                output += `];\n`;
+            } 
+            else if (format === 'json') {
+                const obj = {
+                    width: w,
+                    height: h,
+                    palette: generatedPalette,
+                    matrix: generatedMatrix
+                };
+                output = JSON.stringify(obj, null, 2);
+            } 
+            else if (format === 'csv') {
+                output = generatedMatrix.map(row => row.join(',')).join('\n');
+            }
+            
+            codeOutput.value = output;
+        }
+
+        // Copy Code Button
+        btnCopyCode.addEventListener('click', () => {
+            codeOutput.select();
+            try {
+                navigator.clipboard.writeText(codeOutput.value);
+                showToast("成功复制代码到剪贴板！");
+            } catch(e) {
+                // Fallback for older browsers
+                document.execCommand('copy');
+                showToast("成功复制代码到剪贴板！");
+            }
+        });
+
+        // Export PNG Button
+        btnExportPNG.addEventListener('click', () => {
+            const url = resultCanvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = url;
+            const w = resultCanvas.width;
+            const h = resultCanvas.height;
+            a.download = `pixel_map_${w}x${h}.png`;
+            a.click();
+            showToast("像素图已成功导出 (原分辨率 PNG)！");
+        });
+
+        // Toast Messages
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            t.classList.add('active');
+            setTimeout(() => {
+                t.classList.remove('active');
+            }, 3000);
+        }
+
+    </script>
+</body>
+</html>
