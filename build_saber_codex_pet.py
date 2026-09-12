@@ -44,7 +44,7 @@ def frame(base, kind, i):
 OUT.mkdir(parents=True, exist_ok=True)
 base = load('思考.png')
 sources = {
-    'idle':'睡觉.png', 'running-right':'开心.png', 'running-left':'开心.png',
+    'idle':'思考.png', 'running-right':'开心.png', 'running-left':'开心.png',
     'waving':'提醒.png', 'jumping':'睡醒.png', 'failed':'错误提示.png',
     'waiting':'提醒.png', 'running':'思考.png', 'review':'思考.png'
 }
