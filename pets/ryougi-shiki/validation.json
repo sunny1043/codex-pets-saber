@@ -1,0 +1,33 @@
+{
+  "valid": true,
+  "sprite_version": 2,
+  "width": 1536,
+  "height": 2288,
+  "cell_width": 192,
+  "cell_height": 208,
+  "frames_per_row": [
+    6,
+    8,
+    8,
+    4,
+    5,
+    8,
+    6,
+    6,
+    6,
+    8,
+    8
+  ],
+  "png_sha256": "ab6027e156a535c32c63cb01abe3ea6f0fd15159911647d68ff0cef1a0dcdec7",
+  "idle_mystic_eyes": "persistent during all open-eye idle frames",
+  "no_jump": true,
+  "idle_ground_baselines": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+  ],
+  "other_rows_unchanged": true
+}
